@@ -24,8 +24,9 @@ KEYWORDS = {
 
 # In C, we can compare chars against each other with <, > but in python that is not possible.
 # Hence why I am just rolling with regular expressions to match those characters.
-IDENT_START = re.compile('[a-zA-Z_]')
-IDENT_CONT = re.compile('[a-zA-Z0-9_]')
+IDENT_START = re.compile("[a-zA-Z_]")
+IDENT_CONT = re.compile("[a-zA-Z0-9_]")
+
 
 class Scanner:
     def __init__(
@@ -98,10 +99,10 @@ class Scanner:
             pass
         elif char == "\n":
             line += 1
-        elif char == "\n":
-            self.string()
         elif char.isdigit():
             self.number()
+        elif char == '"':
+            self.string()
         elif IDENT_START.match(char):
             self.identifier()
         else:
@@ -144,7 +145,7 @@ class Scanner:
 
         self.advance()
 
-        self.add_token(TokenType.STRING, self.source[self.start + 1, self.current - 1])
+        self.add_token(TokenType.STRING, self.source[self.start + 1 : self.current - 1])
 
     def number(self) -> None:
         while self.peek().isdigit():
@@ -157,10 +158,10 @@ class Scanner:
             while self.peek().isdigit():
                 self.advance()
 
-        self.add_token(TokenType.NUMBER, float(self.source[self.start, self.current]))
+        self.add_token(TokenType.NUMBER, float(self.source[self.start : self.current]))
 
     def peek_next(self) -> str:
-        if len(self.source) >= self.current + 1:
+        if len(self.source) <= self.current + 1:
             return ""
 
         return self.source[self.current + 1]
@@ -169,8 +170,8 @@ class Scanner:
         while IDENT_CONT.match(self.peek()):
             self.advance()
 
-        text = self.source[self.start, self.current]
-        
+        text = self.source[self.start : self.current]
+
         if text in KEYWORDS:
             self.add_token(KEYWORDS[text])
         else:

@@ -6,17 +6,14 @@ had_error = False
 
 
 def main() -> None:
-    # args = sys.argv[1:]
-    # if len(args) > 1:
-    #     print("Usage: main.py [script]")
-    #     sys.exit(64)
-    # elif len(args) == 1:
-    #     run_file(args[0])
-    # else:
-    #     run_prompt()
-
-    string = input("enter character: ")
-    print(string.isalpha())
+    args = sys.argv[1:]
+    if len(args) > 1:
+        print("Usage: main.py [script]")
+        sys.exit(64)
+    elif len(args) == 1:
+        run_file(args[0])
+    else:
+        run_prompt()
 
 
 def run_file(file_path: str) -> None:
@@ -42,7 +39,7 @@ def run(source: str) -> None:
     tokens = scanner.scan_tokens()
 
     for token in tokens:
-        print(token.type)
+        print(f"{token.type} | {token.literal}")
 
 
 if __name__ == "__main__":

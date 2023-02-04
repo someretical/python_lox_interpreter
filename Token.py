@@ -13,4 +13,4 @@ class Token:
         self.line = line
 
     def to_string(self) -> str:
-        return self.type + " " + self.lexeme + " " + self.literal
+        return self.type.name + " " + self.lexeme + " " + str(self.literal)
