@@ -26,7 +26,6 @@ class ASTPrinter(ExprVisitor):
         return self.parenthesize(expr.operator.lexeme, expr.right)
 
 
-
 def main() -> None:
     expr = Binary(
         Unary(
@@ -34,7 +33,7 @@ def main() -> None:
             Literal(123),
         ),
         Token(TokenType.STAR, "*", None, 1),
-        Grouping(Literal(45.67))
+        Grouping(Literal(45.67)),
     )
 
     print(ASTPrinter().print(expr))

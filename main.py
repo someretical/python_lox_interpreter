@@ -1,4 +1,7 @@
 import sys
+
+from AstPrinter import ASTPrinter
+from Parser import Parser
 from Scanner import Scanner
 from Token import *
 
@@ -37,9 +40,13 @@ def run_prompt() -> None:
 def run(source: str) -> None:
     scanner = Scanner(source, [])
     tokens = scanner.scan_tokens()
+    parser = Parser(tokens)
+    expression = parser.parse()
 
-    for token in tokens:
-        print(f"{token.type} | {token.literal}")
+    if had_error:
+        return
+
+    print(ASTPrinter().print(expression))
 
 
 if __name__ == "__main__":

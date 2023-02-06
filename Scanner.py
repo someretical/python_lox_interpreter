@@ -1,7 +1,8 @@
-from TokenType import *
-from Token import *
-from Error import *
 import re
+
+from Error import *
+from Token import *
+from TokenType import *
 
 KEYWORDS = {
     "and": TokenType.AND,
