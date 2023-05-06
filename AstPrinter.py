@@ -6,9 +6,9 @@ class ASTPrinter(ExprVisitor):
     def print(self, expr: Expr):
         return expr.accept(self)
 
-    def parenthesize(self, name: str, *exprs: Expr) -> str:
+    def parenthesize(self, name: str, *expressions: Expr) -> str:
         # recursion !
-        return f"({name} {' '.join([expr.accept(self) for expr in exprs])})"
+        return f"({name} {' '.join([expr.accept(self) for expr in expressions])})"
 
     def visit_binary(self, expr: Binary) -> str:
         return self.parenthesize(expr.operator.lexeme, expr.left, expr.right)

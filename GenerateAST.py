@@ -24,7 +24,7 @@ def main() -> None:
 
     try:
         os.mkdir(args[0])
-    except:
+    except FileExistsError:
         pass
 
     define_ast(args[0], "Expr", EXPR)
@@ -80,9 +80,9 @@ class {class_name}({base_name}):"""
 def define_visitor(file: TextIO, base_name: str, types: abc.KeysView):
     file.write(f"class {base_name}Visitor:\n")
 
-    for type in types:
+    for t in types:
         file.write(
-            f"""    def visit_{type.lower()}(self, expr: {type}):
+            f"""    def visit_{t.lower()}(self, expr: {t}):
         raise NotImplementedError("Tried calling a virtual method")
 
 """

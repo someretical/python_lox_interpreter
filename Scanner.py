@@ -24,19 +24,19 @@ KEYWORDS = {
 }
 
 # In C, we can compare chars against each other with <, > but in python that is not possible.
-# Hence why I am just rolling with regular expressions to match those characters.
+# Hence, why I am just rolling with regular expressions to match those characters.
 IDENT_START = re.compile("[a-zA-Z_]")
 IDENT_CONT = re.compile("[a-zA-Z0-9_]")
 
 
 class Scanner:
     def __init__(
-        self,
-        source: str,
-        tokens: list[Token],
-        start: int = 0,
-        current: int = 0,
-        line: int = 1,
+            self,
+            source: str,
+            tokens: list[Token],
+            start: int = 0,
+            current: int = 0,
+            line: int = 1,
     ) -> None:
         self.source = source
         self.tokens = tokens
@@ -99,7 +99,7 @@ class Scanner:
         elif char == " " or char == "\r" or char == "\t":
             pass
         elif char == "\n":
-            line += 1
+            self.line += 1
         elif char.isdigit():
             self.number()
         elif char == '"':
@@ -113,9 +113,9 @@ class Scanner:
         self.current += 1
         return self.source[self.current - 1]
 
-    def add_token(self, type: TokenType, literal: LiteralType = None) -> None:
+    def add_token(self, token_type: TokenType, literal: LiteralType = None) -> None:
         self.tokens.append(
-            Token(type, self.source[self.start : self.current], literal, self.line)
+            Token(token_type, self.source[self.start: self.current], literal, self.line)
         )
 
     def match(self, expected: str) -> bool:
@@ -146,7 +146,7 @@ class Scanner:
 
         self.advance()
 
-        self.add_token(TokenType.STRING, self.source[self.start + 1 : self.current - 1])
+        self.add_token(TokenType.STRING, self.source[self.start + 1: self.current - 1])
 
     def number(self) -> None:
         while self.peek().isdigit():
@@ -159,7 +159,7 @@ class Scanner:
             while self.peek().isdigit():
                 self.advance()
 
-        self.add_token(TokenType.NUMBER, float(self.source[self.start : self.current]))
+        self.add_token(TokenType.NUMBER, float(self.source[self.start: self.current]))
 
     def peek_next(self) -> str:
         if len(self.source) <= self.current + 1:
@@ -171,7 +171,7 @@ class Scanner:
         while IDENT_CONT.match(self.peek()):
             self.advance()
 
-        text = self.source[self.start : self.current]
+        text = self.source[self.start: self.current]
 
         if text in KEYWORDS:
             self.add_token(KEYWORDS[text])

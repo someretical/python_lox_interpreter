@@ -1,11 +1,9 @@
 import sys
 
 from AstPrinter import ASTPrinter
+from Interpreter import Interpreter
 from Parser import Parser
 from Scanner import Scanner
-from Token import *
-
-had_error = False
 
 
 def main() -> None:
@@ -23,9 +21,6 @@ def run_file(file_path: str) -> None:
     with open(file_path, "r") as file:
         run(file.read())
 
-    if had_error:
-        sys.exit(65)
-
 
 def run_prompt() -> None:
     while True:
@@ -34,16 +29,19 @@ def run_prompt() -> None:
             break
 
         run(line)
-        had_error = False
 
 
 def run(source: str) -> None:
     scanner = Scanner(source, [])
     tokens = scanner.scan_tokens()
     parser = Parser(tokens)
-    expression = parser.parse()
+    err, expression = parser.parse()
 
-    if had_error:
+    if err:
+        return
+
+    runtime_err = Interpreter().interpret(expression)
+    if runtime_err:
         return
 
     print(ASTPrinter().print(expression))
