@@ -1,4 +1,5 @@
 from AST.Expr import *
+from AST.Stmt import *
 from Error import parse_error
 
 
@@ -127,7 +128,7 @@ class Parser:
         while self.match(TokenType.BANG_EQUAL, TokenType.BANG_EQUAL):
             operator = self.previous()
             right = self.comparison()
-            expr = Binary(expr, operator, right)
+            expr = BinaryExpr(expr, operator, right)
 
         return expr
 
@@ -147,7 +148,7 @@ class Parser:
         ):
             operator = self.previous()
             right = self.term()
-            expr = Binary(expr, operator, right)
+            expr = BinaryExpr(expr, operator, right)
 
         return expr
 
@@ -162,7 +163,7 @@ class Parser:
         while self.match(TokenType.MINUS, TokenType.PLUS):
             operator = self.previous()
             right = self.factor()
-            expr = Binary(expr, operator, right)
+            expr = BinaryExpr(expr, operator, right)
 
         return expr
 
@@ -177,7 +178,7 @@ class Parser:
         while self.match(TokenType.SLASH, TokenType.STAR):
             operator = self.previous()
             right = self.unary()
-            expr = Binary(expr, operator, right)
+            expr = BinaryExpr(expr, operator, right)
 
         return expr
 
@@ -191,7 +192,7 @@ class Parser:
         if self.match(TokenType.BANG, TokenType.MINUS):
             operator = self.previous()
             right = self.unary()
-            return Unary(operator, right)
+            return UnaryExpr(operator, right)
 
         return self.primary()
 
@@ -202,19 +203,19 @@ class Parser:
         :return:
         """
         if self.match(TokenType.FALSE):
-            return Literal(False)
+            return LiteralExpr(False)
         if self.match(TokenType.TRUE):
-            return Literal(True)
+            return LiteralExpr(True)
         if self.match(TokenType.NIL):
-            return Literal(None)
+            return LiteralExpr(None)
 
         if self.match(TokenType.NUMBER, TokenType.STRING):
-            return Literal(self.previous().literal)
+            return LiteralExpr(self.previous().literal)
 
         if self.match(TokenType.LEFT_PAREN):
             expr = self.expression()
             self.consume(TokenType.RIGHT_PAREN, "Expected ')' after expression")
-            return Grouping(expr)
+            return GroupingExpr(expr)
 
         raise self.error(self.peek(), "Expected expression.")
 
@@ -233,13 +234,34 @@ class Parser:
 
         raise self.error(self.peek(), message)
 
-    def parse(self) -> tuple[bool, Expr]:
+    def statement(self):
+        if self.match(TokenType.PRINT):
+            return self.print_statement()
+
+        return self.expression_statement()
+
+    def print_statement(self):
+        value = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after value.")
+        return PrintStmt(value)
+
+    def expression_statement(self):
+        value = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expect ';' after expression.")
+        return ExpressionStmt(value)
+
+    def parse(self) -> tuple[bool, list[Stmt]]:
         """
         Parse the provided tokens into an AST
         :return: An expression object representing the AST
         """
 
         try:
-            return False, self.expression()
+            statements = []
+
+            while not self.at_end():
+                statements.append(self.statement())
+
+            return False, statements
         except ParseError:
-            return True, Expr()
+            return True, []

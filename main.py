@@ -35,16 +35,14 @@ def run(source: str) -> None:
     scanner = Scanner(source, [])
     tokens = scanner.scan_tokens()
     parser = Parser(tokens)
-    err, expression = parser.parse()
+    err, statements = parser.parse()
 
     if err:
         return
 
-    runtime_err = Interpreter().interpret(expression)
-    if runtime_err:
-        return
+    # print(ASTPrinter().print(expression))
 
-    print(ASTPrinter().print(expression))
+    Interpreter().interpret(statements)
 
 
 if __name__ == "__main__":

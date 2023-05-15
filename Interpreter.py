@@ -1,28 +1,33 @@
 from AST.Expr import *
+from AST.Stmt import *
 from TokenType import TokenType
 from RuntimeError import LoxRuntimeError, runtime_error
 
 
-class Interpreter(ExprVisitor):
-    def interpret(self, expression: Expr) -> bool:
+class Interpreter(ExprVisitor, StmtVisitor):
+    def interpret(self, statements: list[Stmt]) -> bool:
         try:
-            value = self.evaluate(expression)
-            print(str(value))
-            return True
+            for statement in statements:
+                self.execute(statement)
+
+            return False
         except LoxRuntimeError as error:
             runtime_error(error)
-            return False
+            return True
 
-    def visit_literal(self, expr: Literal) -> LiteralType:
-        return expr.value
-
-    def visit_grouping(self, expr: Grouping) -> any:
-        return self.evaluate(expr.expression)
+    def execute(self, statement: Stmt):
+        statement.accept(self)
 
     def evaluate(self, expr: Expr) -> any:
         return expr.accept(self)
 
-    def visit_unary(self, expr: Unary) -> any:
+    def visit_literal_expr(self, expr: LiteralExpr) -> LiteralType:
+        return expr.value
+
+    def visit_grouping_expr(self, expr: GroupingExpr) -> any:
+        return self.evaluate(expr.expression)
+
+    def visit_unary_expr(self, expr: UnaryExpr) -> any:
         right = self.evaluate(expr.right)
 
         if expr.operator.type == TokenType.MINUS:
@@ -35,7 +40,7 @@ class Interpreter(ExprVisitor):
 
     @staticmethod
     def is_truthy(expr: Expr) -> bool:
-        if isinstance(expr, Literal):
+        if isinstance(expr, LiteralExpr):
             if expr.value is None:
                 return False
             if type(expr.value) == bool:
@@ -57,7 +62,7 @@ class Interpreter(ExprVisitor):
 
         raise LoxRuntimeError(operator, "Operands must be a numbers.")
 
-    def visit_binary(self, expr: Binary):
+    def visit_binary_expr(self, expr: BinaryExpr):
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
 
@@ -80,6 +85,10 @@ class Interpreter(ExprVisitor):
 
         elif expr.operator.type == TokenType.SLASH:
             self.check_number_operands(expr.operator, left, right)
+
+            if float(right) == 0.0:
+                raise LoxRuntimeError(expr.operator, "Divide by zero error.")
+
             return float(left) / float(right)
 
         elif expr.operator.type == TokenType.GREATER:
@@ -109,3 +118,14 @@ class Interpreter(ExprVisitor):
     @staticmethod
     def is_equal(left: any, right: any) -> bool:
         return left == right
+
+    def visit_expression_stmt(self, stmt: ExpressionStmt):
+        self.evaluate(stmt.expression)
+
+    def visit_print_stmt(self, stmt: PrintStmt):
+        value = self.evaluate(stmt.expression)
+
+        if isinstance(value, str):
+            print(f"\"{value}\"")
+        else:
+            print(str(value))
