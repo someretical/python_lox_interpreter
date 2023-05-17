@@ -23,26 +23,25 @@ def run_file(file_path: str) -> None:
 
 
 def run_prompt() -> None:
+    interpreter = Interpreter()
+
     while True:
         line = input("> ")
         if len(line) == 0:
             break
 
-        run(line)
+        run(line, interpreter)
 
 
-def run(source: str) -> None:
+def run(source: str, interpreter: Interpreter | None = None) -> None:
+    if not interpreter:
+        interpreter = Interpreter()
+
     scanner = Scanner(source, [])
     tokens = scanner.scan_tokens()
     parser = Parser(tokens)
-    err, statements = parser.parse()
 
-    if err:
-        return
-
-    # print(ASTPrinter().print(expression))
-
-    Interpreter().interpret(statements)
+    interpreter.interpret(parser.parse())
 
 
 if __name__ == "__main__":

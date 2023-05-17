@@ -5,15 +5,19 @@ from datetime import datetime
 from typing import TextIO
 
 EXPR = {
-    "BinaryExpr": ["Expr left", "Token operator", "Expr right"],
-    "GroupingExpr": ["Expr expression"],
-    "LiteralExpr": ["LiteralType value"],
-    "UnaryExpr": ["Token operator", "Expr right"],
+    "Assign": ["Token name", "Expr value"],
+    "Binary": ["Expr left", "Token operator", "Expr right"],
+    "Grouping": ["Expr expression"],
+    "Literal": ["LiteralType value"],
+    "Unary": ["Token operator", "Expr right"],
+    "Variable": ["Token name"],
 }
 
 STMT = {
-    "ExpressionStmt": ["Expr expression"],
-    "PrintStmt": ["Expr expression"]
+    "Block": ["list[Stmt] statements"],
+    "Expression": ["Expr expression"],
+    "Print": ["Expr expression"],
+    "Variable": ["Token name", "Expr initializer"],
 }
 
 TYPE = dict[str, list[str]]
@@ -33,7 +37,7 @@ def main() -> None:
         pass
 
     define_ast(args[0], "Expr", EXPR, ["from Token import Token, LiteralType"])
-    define_ast(args[0], "Stmt", STMT, ["from AST.Expr import Expr"])
+    define_ast(args[0], "Stmt", STMT, ["from AST.Expr import Expr", "from Token import Token"])
 
 
 def define_ast(output_dir: str, base_name: str, types: TYPE, extra_imports=None) -> None:
@@ -82,15 +86,17 @@ class {base_name}:
 #""")
 
         for class_name, fields in types.items():
-            file.write(f"""\n\n@dataclass\nclass {class_name}({base_name}):\n""")
+            file.write(f"""\n\n@dataclass\nclass {class_name}{base_name}({base_name}):\n""")
 
             for field in fields:
                 field_type, field_name = field.split(" ")
                 file.write(f"""    {field_name}: {field_type}\n""")
 
+            visitor_parameter = f"visitor: {base_name}Visitor"
+            method_name = f"visit_{class_name.lower()}_{bn_lower}"
             file.write(
-                f"""\n    def accept(self, visitor: {base_name}Visitor):
-        return visitor.visit_{class_name.lower().split(bn_lower)[0]}_{bn_lower}(self)\n"""
+                f"""\n    def accept(self, {visitor_parameter}):
+        return visitor.{method_name}(self)\n"""
             )
 
 
@@ -99,9 +105,11 @@ def define_visitor(file: TextIO, base_name: str, types: abc.KeysView):
 
     bn_lower = base_name.lower()
     for t in types:
+        expression_parameter = f"{bn_lower}: {t}{base_name}"
+        method_name = f"visit_{t.lower()}_{bn_lower}"
         file.write(
-            f"""    def visit_{t.lower().split(bn_lower)[0]}_{bn_lower}(self, {bn_lower}: {t}):
-        raise NotImplementedError("Tried calling a virtual method")\n\n"""
+            f"""    def {method_name}(self, {expression_parameter}):
+        raise NotImplementedError("Tried calling a virtual method {method_name}")\n\n"""
         )
 
 

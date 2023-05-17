@@ -1,3 +1,4 @@
+import Token
 from AST.Expr import *
 from AST.Stmt import *
 from Error import parse_error
@@ -81,11 +82,37 @@ class Parser:
 
     def expression(self) -> Expr:
         """
-        expression -> equality ;
+        expression -> assignment ;
         :return:
         """
 
-        return self.equality()
+        return self.assignment()
+
+    def assignment(self):
+        """
+        assignment -> IDENTIFIER "=" assignment
+                      | equality ;
+        :return:
+        """
+
+        # Adding types here explicitly to make things more obvious
+        expr: Expr = self.equality()
+
+        if self.match(TokenType.EQUAL):
+            equals: Token = self.previous()
+            value: Expr = self.assignment()
+
+            # The trick is that right before we create the assignment expression node, we look at the left-hand side
+            # expression and figure out what kind of assignment target it is. We convert the r-value expression node
+            # into an l-value representation.
+            # https://craftinginterpreters.com/statements-and-state.html#assignment-syntax
+            if isinstance(expr, VariableExpr):
+                name: Token = expr.name
+                return AssignExpr(name, value)
+
+            self.error(equals, "Invalid assignment target.")
+
+        return expr
 
     @staticmethod
     def error(token: Token, message: str) -> ParseError:
@@ -199,9 +226,11 @@ class Parser:
     def primary(self) -> Expr:
         """
         primary -> NUMBER | STRING | "true" | "false" | "nil"
-                   | "(" expression ")" ;
+                   | "(" expression ")"
+                   | IDENTIFIER ;
         :return:
         """
+
         if self.match(TokenType.FALSE):
             return LiteralExpr(False)
         if self.match(TokenType.TRUE):
@@ -211,6 +240,9 @@ class Parser:
 
         if self.match(TokenType.NUMBER, TokenType.STRING):
             return LiteralExpr(self.previous().literal)
+
+        if self.match(TokenType.IDENTIFIER):
+            return VariableExpr(self.previous())
 
         if self.match(TokenType.LEFT_PAREN):
             expr = self.expression()
@@ -235,33 +267,102 @@ class Parser:
         raise self.error(self.peek(), message)
 
     def statement(self):
+        """
+        statement -> exprStmt
+                     | printStmt
+                     | block ;
+        :return:
+        """
+
         if self.match(TokenType.PRINT):
             return self.print_statement()
+
+        if self.match(TokenType.LEFT_BRACE):
+            return BlockStmt(self.block())
 
         return self.expression_statement()
 
     def print_statement(self):
+        """
+        printStmt -> "print" expression ";" ;
+        :return:
+        """
+
         value = self.expression()
         self.consume(TokenType.SEMICOLON, "Expect ';' after value.")
         return PrintStmt(value)
 
+    def block(self):
+        """
+        block -> "{" declaration* "}" ;
+        :return:
+        """
+
+        statements = []
+
+        while not self.check(TokenType.RIGHT_BRACE) and not self.at_end():
+            statements.append(self.declaration())
+
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after block.")
+
+        return statements
+
     def expression_statement(self):
+        """
+        exprStmt -> expression ";" ;
+        :return:
+        """
+
         value = self.expression()
         self.consume(TokenType.SEMICOLON, "Expect ';' after expression.")
         return ExpressionStmt(value)
 
-    def parse(self) -> tuple[bool, list[Stmt]]:
+    def declaration(self):
         """
-        Parse the provided tokens into an AST
-        :return: An expression object representing the AST
+        declaration -> varDecl
+                       | statement ;
+        :return:
         """
 
         try:
-            statements = []
+            if self.match(TokenType.VAR):
+                return self.variable_declaration()
 
-            while not self.at_end():
-                statements.append(self.statement())
-
-            return False, statements
+            return self.statement()
         except ParseError:
-            return True, []
+            self.synchronise()
+            return None
+
+    def variable_declaration(self):
+        """
+        varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
+        :return:
+        """
+
+        name = self.consume(TokenType.IDENTIFIER, "Expect variable name.")
+        initializer = LiteralExpr(None)
+
+        if self.match(TokenType.EQUAL):
+            initializer = self.expression()
+
+        self.consume(TokenType.SEMICOLON, "Expect ';' variable declaration.")
+
+        return VariableStmt(name, initializer)
+
+    def parse(self) -> list[Stmt]:
+        """
+        Parse the provided tokens into an AST
+
+        program -> declaration* EOF ;
+
+        :return: An expression object representing the AST
+        """
+
+        statements = []
+
+        while not self.at_end():
+            statement = self.declaration()
+            if statement:
+                statements.append(statement)
+
+        return statements

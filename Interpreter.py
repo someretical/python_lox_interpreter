@@ -1,10 +1,15 @@
 from AST.Expr import *
 from AST.Stmt import *
-from TokenType import TokenType
-from RuntimeError import LoxRuntimeError, runtime_error
+from TokenType import *
+from Environment import *
+from RuntimeError import *
+from dataclasses import *
 
 
+@dataclass
 class Interpreter(ExprVisitor, StmtVisitor):
+    environment: Environment = field(default_factory=lambda: Environment())
+
     def interpret(self, statements: list[Stmt]) -> bool:
         try:
             for statement in statements:
@@ -129,3 +134,30 @@ class Interpreter(ExprVisitor, StmtVisitor):
             print(f"\"{value}\"")
         else:
             print(str(value))
+
+    def visit_variable_stmt(self, stmt: VariableStmt):
+        value = self.evaluate(stmt.initializer)
+        self.environment.define(stmt.name.lexeme, value)
+
+    def visit_variable_expr(self, expr: VariableExpr):
+        return self.environment.get(expr.name)
+
+    def visit_assign_expr(self, expr: AssignExpr):
+        value = self.evaluate(expr.value)
+        self.environment.assign(expr.name, value)
+        return value
+
+    def visit_block_stmt(self, stmt: BlockStmt):
+        return self.execute_block(stmt.statements, Environment(self.environment))
+
+    def execute_block(self, statements: list[Stmt], new_env: Environment):
+        enclosed = self.environment
+        # the new_env has self.environment as its enclosed
+        try:
+            self.environment = new_env
+
+            for statement in statements:
+                self.execute(statement)
+        finally:
+            self.environment = enclosed
+
